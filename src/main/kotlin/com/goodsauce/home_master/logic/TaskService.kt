@@ -62,7 +62,7 @@ class TaskService(
 
     fun getRelevantCompletions(taskId: Int): TaskSummary {
         val now = Instant.now(clock)
-        val schedules = getSchedules(taskId)
+        val task = toTask(taskRepository.getById(taskId))
         val timeMargin = taskLookback * (1 + completionTimeOffsetTolerance)
         val timeRange =
             (now.minusMillis(timeMargin.inWholeMilliseconds)..now.plusMillis(timeMargin.inWholeMilliseconds))
@@ -71,7 +71,7 @@ class TaskService(
             taskCompletionRepository.getByTaskId(taskId, timeRange).sortedBy { it.timeDue }.map { toTaskCompletion(it) }
         val completedCompletions = relevantCompletions.filter { it.timeCompleted != null }
         val outstandingCompletions = relevantCompletions.filter { it.timeCompleted == null }
-        return TaskSummary(completedCompletions, outstandingCompletions)
+        return TaskSummary(task, completedCompletions, outstandingCompletions)
     }
 
     private fun getSchedules(taskId: Int): Set<TaskSchedule> = taskScheduleRepository.getByTaskId(taskId)
@@ -121,4 +121,6 @@ class TaskService(
         completion.timeCompleted,
         completion.timeDue
     )
+
+    private fun toTask(task: TaskRepository.Task): Task = Task(task.id, task.name)
 }
