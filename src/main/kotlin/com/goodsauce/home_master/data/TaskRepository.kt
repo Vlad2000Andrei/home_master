@@ -1,10 +1,12 @@
 package com.goodsauce.home_master.data
 
+import com.goodsauce.home_master.logic.Task
 import org.ktorm.database.Database
-import org.ktorm.dsl.isNotNull
+import org.ktorm.dsl.eq
 import org.ktorm.entity.Entity
-import org.ktorm.entity.map
+import org.ktorm.entity.find
 import org.ktorm.entity.sequenceOf
+import org.ktorm.entity.toSet
 import org.ktorm.schema.Table
 import org.ktorm.schema.int
 import org.ktorm.schema.text
@@ -25,5 +27,9 @@ class TaskRepository(private val database: Database) {
         val name: String
     }
 
-    fun getAll(): Set<TaskEntity> = database.sequenceOf(Tasks).map { task -> TaskEntity(task.id, task.name) }.toSet()
+    fun getAll(): Set<Task> = database.sequenceOf(Tasks).toSet()
+
+    fun getById(taskId: Int): Task {
+        return database.sequenceOf(Tasks).find { it.id.eq(taskId) }!!
+    }
 }

@@ -1,7 +1,7 @@
 package com.goodsauce.home_master.web
 
-import com.goodsauce.home_master.data.TaskEntity
 import com.goodsauce.home_master.logic.TaskService
+import com.goodsauce.home_master.logic.TaskSummary
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
@@ -11,11 +11,13 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/api/tasks")
 class TaskController(val taskService: TaskService) {
 
-    @GetMapping("/complete/{taskId}")
-    fun completeTask(@PathVariable taskId: Int) {
-        taskService.complete(taskId)
+    @GetMapping("/complete/{completionId}")
+    fun completeTask(@PathVariable completionId: Int) {
+        taskService.complete(completionId)
     }
 
-    @GetMapping("/count")
-    fun listTasks(): Set<TaskEntity> = setOf()
+    @GetMapping("/summary/{taskId}")
+    fun summary(@PathVariable taskId: Int): TaskSummary {
+        return taskService.getRelevantCompletions(taskId)
+    }
 }
