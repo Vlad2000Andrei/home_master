@@ -37,15 +37,15 @@ class TaskService(
         val nextCompletionDueTimeBySchedule = latestCompletionDueTimeBySchedule.entries.associate {
             Pair(
                 it.key,
-                it.value?.plusMillis(it.key.repeatRate.completionInterval.inWholeMilliseconds)
-                    ?: getFirstExpectedCompletion(toTaskSchedule(it.key))
+                getCompletionInstantsUntil(toTaskSchedule(it.key), it.value, latestDueDateToGenerate)
             )
         }
-        val completionsToInsert = nextCompletionDueTimeBySchedule.map {
-            TaskCompletionCreation(
-                it.key.task.id, it.key.id, it.value
-            )
-        }.filter { generationTimeRange.contains(it.timeDue) }.toSet()
+        val completionsToInsert = nextCompletionDueTimeBySchedule.flatMap {
+            val schedule = it.key
+            it.value.map {
+                TaskCompletionCreation(schedule.task.id, schedule.id, it)
+            }
+        }.filter { generationTimeRange.contains(it.timeDue) }.sortedBy { it.timeDue }.toSet()
 
         if (completionsToInsert.isNotEmpty()) {
             taskCompletionRepository.insert(completionsToInsert)
@@ -88,25 +88,24 @@ class TaskService(
         schedule.startDate.atTime(schedule.scheduledTime).atZone(zoneIdAmsterdam)
     )
 
-    private fun getPreviousExpectedCompletionTime(schedule: TaskSchedule): Instant {
-        val firstExpectedCompletion = getFirstExpectedCompletion(schedule)
-        val nextExpectedCompletion = getNextExpectedCompletionTime(schedule)
-        val previousExpectedCompletion =
-            nextExpectedCompletion.minusMillis(schedule.repeatRate.completionInterval.inWholeMilliseconds)
-        return if (previousExpectedCompletion.isBefore(firstExpectedCompletion)) firstExpectedCompletion else previousExpectedCompletion
-    }
+    private fun getCompletionInstantsUntil(
+        schedule: TaskSchedule,
+        latestCompletionDueTime: Instant?,
+        until: Instant
+    ): Sequence<Instant> {
+        val repeatIntervalMillis = schedule.repeatRate.completionInterval.inWholeMilliseconds
+        val firstScheduledCompletion = getFirstExpectedCompletion(schedule)
+        val nextExpectedCompletion = if (latestCompletionDueTime != null) latestCompletionDueTime.plusMillis(repeatIntervalMillis) else firstScheduledCompletion
+        val sequenceStart = if (nextExpectedCompletion.isBefore(until)) nextExpectedCompletion.plusMillis(repeatIntervalMillis) else null
 
-    private fun getNextExpectedCompletionTime(schedule: TaskSchedule): Instant {
-        val now = Instant.now()
-        val firstExpectedCompletion = getFirstExpectedCompletion(schedule)
-
-        if (now.isBefore(firstExpectedCompletion)) {
-            return firstExpectedCompletion
-        }
-
-        val timeSinceFirstExpectedCompletion = java.time.Duration.between(firstExpectedCompletion, now).toMillis()
-        val durationBetweenCompletions = schedule.repeatRate.completionInterval.inWholeMilliseconds
-        return now.plusMillis(timeSinceFirstExpectedCompletion % durationBetweenCompletions)
+        return generateSequence(
+            sequenceStart,
+            {
+                val nextElement = it.plusMillis(repeatIntervalMillis)
+                if (nextElement.isBefore(until)) return@generateSequence nextElement
+                else return@generateSequence null
+            }
+        )
     }
 
     private fun toTaskSchedule(schedule: TaskScheduleRepository.TaskSchedule): TaskSchedule = TaskSchedule(
