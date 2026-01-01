@@ -18,6 +18,7 @@ class TaskService(
     private val taskRepository: TaskRepository,
     private val taskCompletionRepository: TaskCompletionRepository,
     private val taskScheduleRepository: TaskScheduleRepository,
+    private val notificationService: NotificationService,
     @Value("\${tasks.lookback-days}") private val taskLookbackDays: Int,
     @Value("\${tasks.time-offset-tolerance}") private val completionTimeOffsetTolerance: Double,
     @Value("\${tasks.generate-ahead-time}") private val generateAheadTime: java.time.Duration,
