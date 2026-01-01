@@ -30,7 +30,7 @@ class TaskService(
     private val taskLookback = taskLookbackDays.days
 
     @Scheduled(fixedRateString = "\${tasks.generation-repeat-period}")
-    fun generateTaskCompletions() {
+    fun generateTaskCompletions(): Set<TaskCompletionCreation> {
         val now = Instant.now(clock)
         val latestDueDateToGenerate = now.plus(generateAheadTime)
         val generationTimeRange = Instant.MIN..latestDueDateToGenerate
@@ -54,6 +54,7 @@ class TaskService(
             taskCompletionRepository.insert(completionsToInsert)
         }
         LOG.info { "Generated tasks: $completionsToInsert" }
+        return completionsToInsert
     }
 
     @Scheduled(fixedRateString = "\${tasks.notification-check-period}")
