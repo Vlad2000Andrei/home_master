@@ -69,4 +69,8 @@ class TaskCompletionRepository(private val database: Database) {
         }
     }
 
+    fun getByDueTimestamp(dueTimestampRange : ClosedRange<Instant>) : Set<TaskCompletion> =
+        database.sequenceOf(TaskCompletions).filter { it.timeDue.between(dueTimestampRange) }.toSet()
+
+
 }

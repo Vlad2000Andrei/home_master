@@ -25,7 +25,7 @@ class NtfyClient(
 
         urlBuilder.set {
             host = ntfyUrl
-            pathSegments = if (subtopic.isNotBlank()) listOf("${ntfyTopic}.${subtopic}") else listOf(ntfyTopic)
+            pathSegments = if (subtopic.isNotBlank()) listOf("${ntfyTopic}-${subtopic}") else listOf(ntfyTopic)
         }
         return urlBuilder.build().toString()
     }

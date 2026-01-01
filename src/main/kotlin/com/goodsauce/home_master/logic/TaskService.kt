@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import kotlin.time.Duration.Companion.days
 
 @Service
@@ -22,6 +23,7 @@ class TaskService(
     @Value("\${tasks.lookback-days}") private val taskLookbackDays: Int,
     @Value("\${tasks.time-offset-tolerance}") private val completionTimeOffsetTolerance: Double,
     @Value("\${tasks.generate-ahead-time}") private val generateAheadTime: java.time.Duration,
+    @Value("\${tasks.notification-check-period}") private val notificationCheckPeriod: java.time.Duration,
 ) {
     private val zoneIdAmsterdam: ZoneId = ZoneId.of("Europe/Amsterdam")
     private val clock = Clock.system(zoneIdAmsterdam)
@@ -53,6 +55,21 @@ class TaskService(
         }
         LOG.info { "Generated tasks: $completionsToInsert" }
     }
+
+    @Scheduled(fixedRateString = "\${tasks.notification-check-period}")
+    fun checkNotifications() {
+        val now = clock.instant()
+        val earliestDueDateToFetch = now.minus(notificationCheckPeriod)
+        val completions = taskCompletionRepository.getByDueTimestamp(earliestDueDateToFetch .. now)
+
+        completions.forEach {
+            val subtopic = it.task.name.lowercase().replace("\\s".toRegex(), "-")
+            val message = "${it.task.name} (${it.taskSchedule.name}) @ ${it.timeDue.atZone(zoneIdAmsterdam).format(
+                DateTimeFormatter.ofPattern("HH:mm"))}"
+            notificationService.sendNotification(message, subtopic)
+        }
+    }
+
 
     fun complete(completionId: Int) {
         val completionTime = Instant.now(clock)
