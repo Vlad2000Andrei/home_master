@@ -118,14 +118,14 @@ class TaskService(
         val nextExpectedCompletion = if (latestCompletionDueTime != null) latestCompletionDueTime.plusMillis(repeatIntervalMillis) else firstScheduledCompletion
         val sequenceStart = if (nextExpectedCompletion.isBefore(until)) nextExpectedCompletion.plusMillis(repeatIntervalMillis) else null
 
-        return generateSequence(
+        return sequenceOf(nextExpectedCompletion).plus(generateSequence(
             sequenceStart,
             {
                 val nextElement = it.plusMillis(repeatIntervalMillis)
                 if (nextElement.isBefore(until)) return@generateSequence nextElement
                 else return@generateSequence null
             }
-        )
+        ))
     }
 
     private fun toTaskSchedule(schedule: TaskScheduleRepository.TaskSchedule): TaskSchedule = TaskSchedule(
