@@ -61,6 +61,7 @@ class TaskService(
         val now = clock.instant()
         val earliestDueDateToFetch = now.minus(notificationCheckPeriod)
         val completions = taskCompletionRepository.getByDueTimestamp(earliestDueDateToFetch .. now)
+            .filter { it.timeCompleted == null }
 
         completions.forEach {
             val subtopic = it.task.name.lowercase().replace("\\s".toRegex(), "-")
