@@ -16,7 +16,7 @@ import java.time.Instant
 abstract class DatabaseTestBase {
 
     companion object {
-        val postgres: PostgreSQLContainer<*> = PostgreSQLContainer("postgres:16").also { it.start() }
+        private val postgres: PostgreSQLContainer<*> = PostgreSQLContainer("postgres:16").also { it.start() }
 
         @DynamicPropertySource
         @JvmStatic
